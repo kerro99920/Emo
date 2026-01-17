@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI表情识别系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .model-selector {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .model-selector h3 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .model-option {
+            padding: 15px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .model-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .model-option.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .model-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .model-size {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .upload-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .upload-box {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-box:hover {
+            background: #f0f4ff;
+            border-color: #764ba2;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.1em;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        #fileInput, #cameraInput {
+            display: none;
+        }
+
+        .preview-area {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        #previewImage {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .video-container {
+            position: relative;
+            max-width: 640px;
+            margin: 0 auto;
+            display: none;
+        }
+
+        #video {
+            width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .camera-controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results-area {
+            display: none;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-main {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .result-emoji {
+            font-size: 6em;
+            margin-bottom: 20px;
+        }
+
+        .result-label {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .result-confidence {
+            font-size: 1.5em;
+            opacity: 0.9;
+        }
+
+        .probabilities {
+            display: grid;
+            gap: 15px;
+        }
+
+        .prob-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s;
+        }
+
+        .prob-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .prob-emoji {
+            font-size: 2.5em;
+            min-width: 60px;
+        }
+
+        .prob-info {
+            flex: 1;
+        }
+
+        .prob-label {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .prob-bar-container {
+            background: #e0e0e0;
+            height: 25px;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .prob-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            transition: width 0.8s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #28a745;
+        }
+
+        .status-offline {
+            background: #dc3545;
+        }
+
+        @media (max-width: 768px) {
+            .upload-area {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .main-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 AI表情识别系统</h1>
+            <p class="subtitle">基于深度学习的实时表情分类</p>
+        </header>
+
+        <div class="main-card">
+            <!-- 模型选择 -->
+            <div class="model-selector">
+                <h3>📦 选择模型</h3>
+                <div class="model-grid" id="modelGrid">
+                    <div class="model-option">
+                        <div class="model-name">加载中...</div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; color: #666;">
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    <span id="statusText">正在连接...</span>
+                </div>
+            </div>
+
+            <!-- 上传区域 -->
+            <div class="upload-area">
+                <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">点击上传图片</div>
+                    <div style="color: #999; margin-top: 10px; font-size: 0.9em;">
+                        支持 JPG, PNG 格式
+                    </div>
+                </div>
+
+                <div class="upload-box" onclick="startCamera()">
+                    <div class="upload-icon">📸</div>
+                    <div class="upload-text">使用摄像头拍照</div>
+                    <div style="color: #999; margin-top: 10px; font-size: 0.9em;">
+                        实时捕捉表情
+                    </div>
+                </div>
+            </div>
+
+            <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+
+            <!-- 预览区域 -->
+            <div class="preview-area">
+                <img id="previewImage" alt="预览图片">
+
+                <div class="video-container" id="videoContainer">
+                    <video id="video" autoplay playsinline></video>
+                    <div class="camera-controls">
+                        <button class="btn btn-primary" onclick="capturePhoto()">📷 拍照</button>
+                        <button class="btn btn-secondary" onclick="stopCamera()">❌ 关闭相机</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分析按钮 -->
+            <div style="text-align: center; margin: 30px 0;">
+                <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeImage()" disabled>
+                    🔍 分析表情
+                </button>
+            </div>
+
+            <!-- 加载动画 -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div>正在分析中...</div>
+            </div>
+
+            <!-- 错误提示 -->
+            <div class="error-message" id="errorMessage"></div>
+
+            <!-- 结果区域 -->
+            <div class="results-area" id="resultsArea">
+                <div class="result-main">
+                    <div class="result-emoji" id="resultEmoji">😊</div>
+                    <div class="result-label" id="resultLabel">快乐</div>
+                    <div class="result-confidence" id="resultConfidence">置信度: 95.3%</div>
+                </div>
+
+                <h3 style="margin-bottom: 20px;">📊 所有类别概率</h3>
+                <div class="probabilities" id="probabilities">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentImage = null;
+        let videoStream = null;
+        let currentModel = null;
+
+        // 初始化
+        window.onload = function() {
+            checkStatus();
+            loadModels();
+        };
+
+        // 检查服务状态
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                const indicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('statusText');
+
+                if (data.model_loaded) {
+                    indicator.className = 'status-indicator status-online';
+                    statusText.textContent = `模型已加载 (${data.device})`;
+                } else {
+                    indicator.className = 'status-indicator status-offline';
+                    statusText.textContent = '请选择模型';
+                }
+            } catch (error) {
+                document.getElementById('statusIndicator').className = 'status-indicator status-offline';
+                document.getElementById('statusText').textContent = '连接失败';
+            }
+        }
+
+        // 加载可用模型
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/models');
+                const data = await response.json();
+
+                const modelGrid = document.getElementById('modelGrid');
+                modelGrid.innerHTML = '';
+
+                data.models.forEach(model => {
+                    const div = document.createElement('div');
+                    div.className = 'model-option';
+                    div.onclick = () => selectModel(model, div);
+
+                    let badges = '';
+                    if (model.is_quantized) badges += ' 🔹量化';
+                    if (model.is_distilled) badges += ' 🎓蒸馏';
+
+                    div.innerHTML = `
+                        <div class="model-name">${model.model_type}${badges}</div>
+                        <div class="model-size">${model.size_mb} MB</div>
+                    `;
+
+                    modelGrid.appendChild(div);
+                });
+            } catch (error) {
+                showError('无法加载模型列表');
+            }
+        }
+
+        // 选择模型
+        async function selectModel(model, element) {
+            // 移除其他选中状态
+            document.querySelectorAll('.model-option').forEach(el => {
+                el.classList.remove('active');
+            });
+            element.classList.add('active');
+
+            try {
+                const response = await fetch('/api/load_model', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        model_filename: model.filename,
+                        model_type: model.model_type
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentModel = model;
+                    checkStatus();
+                    showError('');
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('模型加载失败');
+            }
+        }
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImage = e.target.result;
+                    showImage(e.target.result);
+                    document.getElementById('analyzeBtn').disabled = false;
+                    document.getElementById('resultsArea').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 显示图片
+        function showImage(dataUrl) {
+            const img = document.getElementById('previewImage');
+            img.src = dataUrl;
+            img.style.display = 'block';
+            stopCamera();
+        }
+
+        // 启动摄像头
+        async function startCamera() {
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user' }
+                });
+
+                const video = document.getElementById('video');
+                video.srcObject = videoStream;
+
+                document.getElementById('videoContainer').style.display = 'block';
+                document.getElementById('previewImage').style.display = 'none';
+                document.getElementById('resultsArea').style.display = 'none';
+            } catch (error) {
+                showError('无法访问摄像头');
+            }
+        }
+
+        // 停止摄像头
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+                document.getElementById('videoContainer').style.display = 'none';
+            }
+        }
+
+        // 拍照
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            currentImage = canvas.toDataURL('image/jpeg');
+            showImage(currentImage);
+            document.getElementById('analyzeBtn').disabled = false;
+        }
+
+        // 分析图片
+        async function analyzeImage() {
+            if (!currentImage) {
+                showError('请先上传或拍摄图片');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultsArea').style.display = 'none';
+            showError('');
+
+            try {
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ image: currentImage })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    displayResults(data);
+                }
+            } catch (error) {
+                showError('分析失败，请检查服务器连接');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // 显示结果
+        function displayResults(data) {
+            document.getElementById('resultEmoji').textContent = data.emoji;
+            document.getElementById('resultLabel').textContent = data.predicted_class_zh;
+            document.getElementById('resultConfidence').textContent =
+                `置信度: ${(data.confidence * 100).toFixed(1)}%`;
+
+            const probsContainer = document.getElementById('probabilities');
+            probsContainer.innerHTML = '';
+
+            // 按概率排序
+            const sortedProbs = Object.entries(data.probabilities)
+                .sort((a, b) => b[1].probability - a[1].probability);
+
+            sortedProbs.forEach(([key, value]) => {
+                const div = document.createElement('div');
+                div.className = 'prob-item';
+                div.innerHTML = `
+                    <div class="prob-emoji">${value.emoji}</div>
+                    <div class="prob-info">
+                        <div class="prob-label">${value.zh}</div>
+                        <div class="prob-bar-container">
+                            <div class="prob-bar" style="width: ${value.probability * 100}%">
+                                ${(value.probability * 100).toFixed(1)}%
+                            </div>
+                        </div>
+                    </div>
+                `;
+                probsContainer.appendChild(div);
+            });
+
+            document.getElementById('resultsArea').style.display = 'block';
+        }
+
+        // 显示错误
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            if (message) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

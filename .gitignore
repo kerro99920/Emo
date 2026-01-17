@@ -1,0 +1,9 @@
+# 忽略数据和模型（这是最关键的）
+Data/
+models/
+results/
+
+# 忽略开发工具和缓存
+.idea/
+__pycache__/
+*.pyc
